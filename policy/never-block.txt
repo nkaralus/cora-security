@@ -1,0 +1,27 @@
+# never-block: the compiler REFUSES any community entry that overlaps these.
+# This protects the fleet's own lifelines. Fail-closed: if this file is missing, nothing compiles.
+# CIDR/IP or domain per line. A domain also covers its subdomains AND its parents
+# (blocking "githubusercontent.com" would break "raw.githubusercontent.com").
+# GitHub ranges below are a starting set: refresh from https://api.github.com/meta
+140.82.112.0/20   ; github
+143.55.64.0/20    ; github
+192.30.252.0/22   ; github
+185.199.108.0/22  ; github pages / raw
+1.1.1.0/24        ; cloudflare dns
+1.0.0.0/24        ; cloudflare dns
+8.8.8.0/24        ; google dns
+8.8.4.0/24        ; google dns
+9.9.9.0/24        ; quad9
+149.112.112.0/24  ; quad9
+208.67.222.0/24   ; opendns
+github.com
+githubusercontent.com
+githubassets.com
+ghcr.io
+pypi.org
+pythonhosted.org
+ubuntu.com
+canonical.com
+letsencrypt.org
+dns.google
+cloudflare-dns.com

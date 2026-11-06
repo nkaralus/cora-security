@@ -1,0 +1,69 @@
+# Triage: validate an issue-submitted violation report, comment, label.
+# Never writes to the repo. The issue body reaches Python only through an env var;
+# it is never interpolated into a shell line (script-injection guard).
+name: ingest
+
+on:
+  issues:
+    types: [opened, edited, reopened]
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: ingest-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  triage:
+    if: ${{ !github.event.issue.pull_request }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      NUM: ${{ github.event.issue.number }}
+      ACTION: ${{ github.event.action }}
+    steps:
+      - uses: actions/checkout@v4   # pin to a full commit SHA before going public-facing
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install --no-cache-dir -r tools/requirements.txt
+
+      - name: Ensure labels exist
+        run: |
+          gh label create validated --color 2ea043 --description "Passed cora-ingest checks" --force
+          gh label create rejected  --color d73a4a --description "Failed cora-ingest checks" --force
+          gh label create accepted  --color 1f6feb --description "Maintainer approved; compile commits it" --force
+
+      - name: Validate report
+        id: check
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          set +e
+          python tools/cora_compile.py check --body-env ISSUE_BODY --json-out result.json > /dev/null
+          rc=$?
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          if [ "$rc" -gt 1 ]; then echo "::error::internal validator failure"; exit 1; fi
+
+      - name: Comment and label
+        env:
+          RC: ${{ steps.check.outputs.rc }}
+        run: |
+          python tools/cora_compile.py render-comment result.json > comment.md
+          gh issue comment "$NUM" --body-file comment.md
+          if [ "$ACTION" = "edited" ]; then
+            gh issue edit "$NUM" --remove-label accepted || true   # an edit voids prior review
+          fi
+          if [ "$RC" = "0" ]; then
+            gh issue edit "$NUM" --add-label validated --remove-label rejected
+          else
+            gh issue edit "$NUM" --add-label rejected --remove-label validated
+          fi

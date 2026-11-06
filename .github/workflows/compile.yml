@@ -1,0 +1,84 @@
+# Compile: when the repo owner applies `accepted`, freeze the report into
+# submissions/accepted/, rebuild every community list from the full accepted set,
+# and commit. workflow_dispatch rebuilds without accepting anything new
+# (use it after editing policy/never-block.txt or deleting a bad submission).
+name: compile
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: compile-blocklists
+  cancel-in-progress: false   # queue; never drop an acceptance
+
+jobs:
+  compile:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.label.name == 'accepted' &&
+       github.event.sender.login == github.repository_owner &&
+       !github.event.issue.pull_request)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write   # scoped to this job only
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      NUM: ${{ github.event.issue.number }}
+    steps:
+      - uses: actions/checkout@v4   # pin to a full commit SHA before going public-facing
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install --no-cache-dir -r tools/requirements.txt
+
+      - name: Accept submission
+        if: github.event_name == 'issues'
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          # The body must hash to the marker in the bot's latest validation comment,
+          # i.e. exactly what was on screen when the owner reviewed it.
+          want=$(gh api "repos/$GH_REPO/issues/$NUM/comments" --paginate \
+            --jq '[.[] | select(.user.login == "github-actions[bot]") | .body
+                   | capture("cora-sha256:(?<s>[0-9a-f]{64})").s] | last // empty' | tail -n1)
+          if [ -z "$want" ]; then echo "::error::no validation marker on issue"; exit 1; fi
+          python tools/cora_compile.py accept --body-env ISSUE_BODY --expect-sha "$want" | tee accepted_id
+
+      - name: Compile blocklists
+        run: python tools/cora_compile.py compile
+
+      - name: Commit
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add submissions/accepted blocklists
+          if git diff --cached --quiet; then echo "nothing changed"; exit 0; fi
+          if [ -s accepted_id ]; then
+            msg="blocklists: accept report $(cat accepted_id) (closes #$NUM)"
+          else
+            msg="blocklists: recompile"
+          fi
+          git commit -m "$msg"
+          git push
+
+      - name: Close issue
+        if: success() && github.event_name == 'issues'
+        run: |
+          gh issue comment "$NUM" --body "cora-compile: committed to \`main\`. Nodes pick it up on next pull."
+          gh issue close "$NUM" --reason completed
+
+      - name: Report failure
+        if: failure() && github.event_name == 'issues'
+        run: |
+          gh issue edit "$NUM" --remove-label accepted || true
+          gh issue comment "$NUM" --body "cora-compile: refused. See the run log: $GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID"

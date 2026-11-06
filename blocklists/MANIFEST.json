@@ -1,0 +1,17 @@
+{
+  "accepted_reports": 0,
+  "generated_from": "none",
+  "lists": {
+    "community-subnets.txt": {
+      "entries": 0,
+      "sha256": "56d7834e1bf68f97e4efdd30a46632fbf7e7df7dc293807a7aa1828ad5262274",
+      "sources": {}
+    },
+    "community-trackers.txt": {
+      "entries": 0,
+      "sha256": "4c3a3352297322217d9bea62b130cee181f9401dc90e03e1e1f4e475ed20343c",
+      "sources": {}
+    }
+  },
+  "schema": "cora.security.blocklist-manifest/v1"
+}
