@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "reporter": "anonymous",
+  "ts": "2026-11-06T13:45:00Z",
+  "kind": "tracker",
+  "entry": "criteo.com",
+  "proto": "tcp",
+  "via": "syn_tap",
+  "notes": "criteo advertising tracker"
+}
