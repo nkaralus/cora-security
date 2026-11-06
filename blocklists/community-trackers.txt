@@ -1,3 +1,4 @@
 # community-trackers: compiled by tools/cora_compile.py. DO NOT EDIT; regenerate instead.
-# sources: 0 accepted report(s) in submissions/accepted/
-# generated-from: none
+# sources: 1 accepted report(s) in submissions/accepted/
+# generated-from: 2026-11-06T18:00:00Z
+criteo.com

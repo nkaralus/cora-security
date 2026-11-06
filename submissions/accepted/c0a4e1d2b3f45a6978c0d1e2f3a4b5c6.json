@@ -1,0 +1,25 @@
+{
+  "observed_hour": "2026-11-06T18:00:00Z",
+  "process": null,
+  "report_id": "c0a4e1d2b3f45a6978c0d1e2f3a4b5c6",
+  "response": {
+    "enforced": true,
+    "model_confidence": 0.9,
+    "policy": null,
+    "verdict": "ISOLATE"
+  },
+  "schema": "cora.security.violation/v1",
+  "task_ref": "9c1e5a7b3d2f",
+  "violation": {
+    "destination": {
+      "ip": null,
+      "ip_class": "public",
+      "port": 443
+    },
+    "entry": "criteo.com",
+    "list": "trackers-starter",
+    "proto": "tcp",
+    "type": "tracker_domain",
+    "via": "syn_tap"
+  }
+}
