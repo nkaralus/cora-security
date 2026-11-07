@@ -12,6 +12,12 @@ on:
 permissions:
   contents: read
 
+# Every run step is `bash -eo pipefail`. Without this GitHub runs `bash -e` with NO pipefail, so `accept ... | tee` took
+# tee's exit status: a refused acceptance went green, and the bot then announced a commit that never happened (issue #5).
+defaults:
+  run:
+    shell: bash
+
 concurrency:
   group: compile-blocklists
   cancel-in-progress: false   # queue; never drop an acceptance
@@ -52,17 +58,36 @@ jobs:
             --jq '[.[] | select(.user.login == "github-actions[bot]") | .body
                    | capture("cora-sha256:(?<s>[0-9a-f]{64})").s] | last // empty' | tail -n1)
           if [ -z "$want" ]; then echo "::error::no validation marker on issue"; exit 1; fi
-          python tools/cora_compile.py accept --body-env ISSUE_BODY --expect-sha "$want" | tee accepted_id
+          # no pipe: a refusal must fail this step, and its reason must reach the issue
+          if ! id=$(python tools/cora_compile.py accept --body-env ISSUE_BODY --expect-sha "$want" 2> refusal.txt); then
+            cat refusal.txt >&2
+            echo "::error::$(head -c 300 refusal.txt)"
+            exit 1
+          fi
+          echo "accepted report $id"
+          printf '%s\n' "$id" > accepted_id
 
       - name: Compile blocklists
         run: python tools/cora_compile.py compile
 
       - name: Commit
+        id: commit
+        env:
+          EVENT: ${{ github.event_name }}
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add submissions/accepted blocklists
-          if git diff --cached --quiet; then echo "nothing changed"; exit 0; fi
+          if git diff --cached --quiet; then
+            if [ "$EVENT" = issues ]; then
+              # an accepted report ALWAYS adds a file under submissions/accepted: nothing staged means it did not
+              echo "::error::the report was accepted but nothing was staged; refusing to report a commit" | tee refusal.txt
+              exit 1
+            fi
+            echo "nothing changed"                 # a manual recompile with nothing new is fine
+            echo "committed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ -s accepted_id ]; then
             msg="blocklists: accept report $(cat accepted_id) (closes #$NUM)"
           else
@@ -70,15 +95,25 @@ jobs:
           fi
           git commit -m "$msg"
           git push
+          echo "committed=true" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Close issue
-        if: success() && github.event_name == 'issues'
+        # only on a REAL commit: this message is the operator's evidence, so it must never be said for nothing
+        if: success() && github.event_name == 'issues' && steps.commit.outputs.committed == 'true'
+        env:
+          SHA: ${{ steps.commit.outputs.sha }}
         run: |
-          gh issue comment "$NUM" --body "cora-compile: committed to \`main\`. Nodes pick it up on next pull."
+          gh issue comment "$NUM" --body "cora-compile: committed to \`main\` as $SHA. It reaches nodes once the manifest is signed (tools/sign-manifest.sh)."
           gh issue close "$NUM" --reason completed
 
       - name: Report failure
         if: failure() && github.event_name == 'issues'
         run: |
           gh issue edit "$NUM" --remove-label accepted || true
-          gh issue comment "$NUM" --body "cora-compile: refused. See the run log: $GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID"
+          why="$( [ -s refusal.txt ] && head -c 500 refusal.txt || echo 'see the run log' )"
+          gh issue comment "$NUM" --body "cora-compile: refused, nothing was committed.
+
+          > $why
+
+          Run log: $GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID"

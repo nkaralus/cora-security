@@ -11,6 +11,10 @@ permissions:
   contents: read
   issues: write
 
+defaults:
+  run:
+    shell: bash                # bash -eo pipefail: a failed command in a pipe must fail the step
+
 concurrency:
   group: ingest-${{ github.event.issue.number }}
   cancel-in-progress: true
