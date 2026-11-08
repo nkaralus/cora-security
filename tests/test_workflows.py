@@ -138,3 +138,11 @@ def test_a_refusal_reaches_the_issue(repo):
     log = (tmp / "gh.log").read_text()
     assert "remove-label accepted" in log and "refused, nothing was committed" in log
     assert "changed after the last validation" in log
+
+
+def test_the_test_workflow_runs_when_a_workflow_changes_and_installs_what_the_tests_import():
+    t = yaml.safe_load((ROOT / ".github/workflows/test.yml").read_text())
+    on = t.get("on", t.get(True))                                  # PyYAML reads a bare `on:` key as True
+    assert ".github/workflows/**" in on["push"]["paths"]
+    reqs = (ROOT / "tools/requirements-dev.txt").read_text().lower()
+    assert "pyyaml==" in reqs                                      # pinned, like every other dependency here

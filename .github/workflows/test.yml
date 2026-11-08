@@ -2,7 +2,7 @@ name: test
 on:
   push:
     branches: [main]
-    paths: ["tools/**", "tests/**", "schema/**", "policy/**"]
+    paths: ["tools/**", "tests/**", "schema/**", "policy/**", ".github/workflows/**"]   # tests/test_workflows.py tests the workflows
   pull_request:
 permissions:
   contents: read
