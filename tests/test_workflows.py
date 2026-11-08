@@ -146,3 +146,11 @@ def test_the_test_workflow_runs_when_a_workflow_changes_and_installs_what_the_te
     assert ".github/workflows/**" in on["push"]["paths"]
     reqs = (ROOT / "tools/requirements-dev.txt").read_text().lower()
     assert "pyyaml==" in reqs                                      # pinned, like every other dependency here
+
+
+def test_the_test_workflow_runs_when_a_workflow_changes_and_installs_what_the_tests_import():
+    t = yaml.safe_load((ROOT / ".github/workflows/test.yml").read_text())
+    on = t.get("on", t.get(True))
+    assert ".github/workflows/**" in on["push"]["paths"]
+    reqs = (ROOT / "tools/requirements-dev.txt").read_text().lower()
+    assert "pyyaml==" in reqs
