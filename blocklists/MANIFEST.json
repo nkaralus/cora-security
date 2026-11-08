@@ -1,18 +1,21 @@
 {
-  "accepted_reports": 1,
-  "generated_from": "2026-11-06T18:00:00Z",
+  "accepted_reports": 2,
+  "generated_from": "2026-11-07T21:00:00Z",
   "lists": {
     "community-subnets.txt": {
       "entries": 0,
-      "sha256": "a1a4428fc9212738148c004135a48b2141988236d897986bd3dda0aba67b7242",
+      "sha256": "bdd8e190dca8f26496aa5eecc17244c8739600f982bc66ae6b3745ccb25970b6",
       "sources": {}
     },
     "community-trackers.txt": {
-      "entries": 1,
-      "sha256": "0c72700030574a9118488aabadfbbacc0ec892fa33b8708d87d6a7cea1ec3628",
+      "entries": 2,
+      "sha256": "21489ea6c537530b0669a1494fded14425ae91574d52c587608230ef7c05ef6e",
       "sources": {
         "criteo.com": [
           "c0a4e1d2b3f45a6978c0d1e2f3a4b5c6"
+        ],
+        "doubleclick.net": [
+          "d0c1e2f3a4b5c6d7e8f9a0b1c2d3e4f5"
         ]
       }
     }

@@ -1,0 +1,25 @@
+{
+  "observed_hour": "2026-11-07T21:00:00Z",
+  "process": null,
+  "report_id": "d0c1e2f3a4b5c6d7e8f9a0b1c2d3e4f5",
+  "response": {
+    "enforced": true,
+    "model_confidence": 0.9,
+    "policy": null,
+    "verdict": "ISOLATE"
+  },
+  "schema": "cora.security.violation/v1",
+  "task_ref": "9c1e5a7b3d2f",
+  "violation": {
+    "destination": {
+      "ip": null,
+      "ip_class": "public",
+      "port": 443
+    },
+    "entry": "doubleclick.net",
+    "list": "trackers-starter",
+    "proto": "tcp",
+    "type": "tracker_domain",
+    "via": "syn_tap"
+  }
+}
